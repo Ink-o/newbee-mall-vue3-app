@@ -10,6 +10,10 @@
 
 <template>
   <div id="app">
+    <!-- login 登录 -->
+    <!-- home 主页 -->
+    <!-- 路由映射 -->
+    <!-- vue-router -->
     <RouterView />
   </div>
 </template>
@@ -17,10 +21,13 @@
 <script setup>
 import { reactive, toRefs } from 'vue'
 import { useRouter, RouterView } from 'vue-router'
+
 const router = useRouter()
 const state = reactive({
   transitionName: 'slide-left'
 })
+
+// 路由增加全局拦截
 router.beforeEach((to, from) => {
   if (to.meta.index > from.meta.index) {
     state.transitionName = 'slide-left' // 向左滑动

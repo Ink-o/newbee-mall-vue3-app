@@ -10,6 +10,7 @@
 
 <template>
   <div>
+    <!-- 首页头部 -->
     <header class="home-header wrap" :class="{'active' : state.headerScroll}">
       <router-link tag="i" to="./category"><i class="nbicon nbmenu2"></i></router-link>
       <div class="header-search">
@@ -22,14 +23,18 @@
         <van-icon name="manager-o" />
       </router-link>
     </header>
+    <!-- 底部导航 -->
     <nav-bar />
+    <!-- 页面轮播图 -->
     <swiper :list="state.swiperList"></swiper>
+    <!-- 新蜂超市等入口 -->
     <div class="category-list">
       <div v-for="item in state.categoryList" v-bind:key="item.categoryId" @click="tips">
         <img :src="item.imgUrl">
         <span>{{item.name}}</span>
       </div>
     </div>
+    <!-- 新品上线板块 -->
     <div class="good">
       <header class="good-header">新品上线</header>
       <van-skeleton title :row="3" :loading="state.loading">
@@ -44,6 +49,7 @@
         </div>
       </van-skeleton>
     </div>
+    <!-- 热门商品板块 -->
     <div class="good">
       <header class="good-header">热门商品</header>
       <van-skeleton title :row="3" :loading="state.loading">
@@ -58,6 +64,7 @@
         </div>
       </van-skeleton>
     </div>
+    <!-- 最新推荐板块 -->
     <div class="good" :style="{ paddingBottom: '100px'}">
       <header class="good-header">最新推荐</header>
       <van-skeleton title :row="3" :loading="state.loading">
@@ -84,15 +91,18 @@ import { getHome } from '@/service/home'
 import { getLocal } from '@/common/js/utils'
 import { showLoadingToast, closeToast, showToast } from 'vant'
 import { useCartStore } from '@/stores/cart'
+// pinia 状态
 const cart = useCartStore()
+// 获取路由对象
 const router = useRouter()
 const state = reactive({
   swiperList: [], // 轮播图列表
   isLogin: false, // 是否已登录
   headerScroll: false, // 滚动透明判断
-  hots: [],
-  newGoodses: [],
-  recommends: [],
+  hots: [], // 热门商品板块 数据
+  newGoodses: [], // 新品上线板块数据
+  recommends: [], // 最新推荐板块 数据
+  // 新蜂超市等入口数据，写死的
   categoryList: [
     {
       name: '新蜂超市',
@@ -136,28 +146,44 @@ const state = reactive({
       categoryId: 100010
     }
   ],
+  // 新品上线板块 加载状态
   loading: true
 })
+// 一个组件从 0 到 1
+// 未渲染 -> 渲染 -> 更新前 -> 更新后（逻辑）
+// diff，patch 
+// ---（执行用户传进来的函数）-----（执行用户传进来的函数）-------
+// 渲染后立刻执行我的逻辑
+// 在特定的时间做某件事情（你传进来的回调函数）
+// 第一种方法：每隔一段，来看组件是否渲染完毕了。渲染完毕的情况，执行逻辑。没渲染完毕，下次再看
+// 第二种方法：作者在编写组件渲染的时候，预留一个空位。让用户可以在这个阶段执行渲染逻辑。用户就可以把想要执行的逻辑放到空位上，这样逻辑就可以直接在组件渲染完毕后执行了
 onMounted(async () => {
+  // 获取用户登录的 token
   const token = getLocal('token')
   if (token) {
     state.isLogin = true
     // 获取购物车数据.
     cart.updateCart()
   }
+  // 全局 loading，表示正在加载中
   showLoadingToast({
     message: '加载中...',
     forbidClick: true
   });
+  // 获取首页数据
   const { data } = await getHome()
   state.swiperList = data.carousels
   state.newGoodses = data.newGoodses
   state.hots = data.hotGoodses
   state.recommends = data.recommendGoodses
+  // 关闭 loading
   state.loading = false
+  // 关闭全局 loading
   closeToast()
 })
 
+// 监听滚动事件，当滚轮距离顶部的值超过 100px 后，state.headerScroll 设置为 true
+// state.headerScroll 的作用主要是用来判断 header 是否需要添加 active 类
 nextTick(() => {
   document.body.addEventListener('scroll', () => {
     let scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop

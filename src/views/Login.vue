@@ -10,10 +10,15 @@
 
 <template>
   <div class="login">
+    <!-- 顶部header -->
     <s-header :name="type == 'login' ? '登录' : '注册'" :back="'/home'"></s-header>
+    <!-- logo -->
     <img class="logo" src="https://s.yezgea02.com/1604045825972/newbee-mall-vue3-app-logo.png" alt="">
+    <!-- 登录展示模块 -->
     <div v-if="state.type == 'login'" class="login-body login">
+      <!-- vant表单 -->
       <van-form @submit="onSubmit">
+        <!-- 用户名输入框。双向绑定为 state.username -->
         <van-field
           v-model="state.username"
           name="username"
@@ -21,6 +26,7 @@
           placeholder="用户名"
           :rules="[{ required: true, message: '请填写用户名' }]"
         />
+        <!-- 密码输入框 -->
         <van-field
           v-model="state.password"
           type="password"
@@ -29,6 +35,7 @@
           placeholder="密码"
           :rules="[{ required: true, message: '请填写密码' }]"
         />
+        <!-- 验证码 -->
         <van-field
           center
           clearable
@@ -37,15 +44,18 @@
           v-model="state.verify"
         >
           <template #button>
+            <!-- 第三方验证码组件 -->
             <vue-img-verify ref="verifyRef" />
           </template>
         </van-field>
+        <!-- 登录/注册按钮 -->
         <div style="margin: 16px;">
           <div class="link-register" @click="toggle('register')">立即注册</div>
           <van-button round block color="#1baeae" native-type="submit">登录</van-button>
         </div>
       </van-form>
     </div>
+    <!-- 注册展示模块。模块大致同上 -->
     <div v-else class="login-body register">
       <van-form @submit="onSubmit">
         <van-field
@@ -91,15 +101,17 @@ import { login, register } from '@/service/user'
 import { setLocal } from '@/common/js/utils'
 import md5 from 'js-md5'
 import { showSuccessToast, showFailToast } from 'vant'
+
+// 验证码组件实例
 const verifyRef = ref(null)
 const state = reactive({
-  username: '',
-  password: '',
-  username1: '',
-  password1: '',
-  type: 'login',
-  imgCode: '',
-  verify: ''
+  username: '', // 登录用户名
+  password: '', // 登录密码
+  username1: '', // 注册用户名
+  password1: '', // 注册密码
+  type: 'login', // 操作类型
+  imgCode: '', // 生成的验证码
+  verify: '' // 输入的验证码
 })
 
 // 切换登录和注册两种模式
@@ -110,25 +122,36 @@ const toggle = (v) => {
 
 // 提交登录或注册表单
 const onSubmit = async (values) => {
+  // 获取生成的验证码
   state.imgCode = verifyRef.value.state.imgCode || ''
+
+  // 输入的验证码和生成的验证码对比
   if (state.verify.toLowerCase() != state.imgCode.toLowerCase()) {
     showFailToast('验证码有误')
     return
   }
+
+  // 处理登录类型
   if (state.type == 'login') {
+    // 调用 登录接口
     const { data } = await login({
       "loginName": values.username,
       "passwordMd5": md5(values.password)
     })
+
+    // 保存 token 到 localstorage 里
     setLocal('token', data)
     // 需要刷新页面，否则 axios.js 文件里的 token 不会被重置
     window.location.href = '/'
-  } else {
+  } else { // 处理注册类型
+    // 调用 注册接口
     await register({
       "loginName": values.username1,
       "password": values.password1
     })
     showSuccessToast('注册成功')
+
+    // 将类型更换为登录类型
     state.type = 'login'
     state.verify = ''
   }

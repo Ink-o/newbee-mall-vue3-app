@@ -10,7 +10,9 @@
 
 <template>
   <div class="order-box">
+    <!-- 标题 -->
     <s-header :name="'我的订单'" :back="'/user'"></s-header>
+    <!-- 状态tab -->
     <van-tabs @click-tab="onChangeTab" :color="'#1baeae'" :title-active-color="'#1baeae'" class="order-tab" v-model="state.status">
       <van-tab title="全部" name=''></van-tab>
       <van-tab title="待付款" name="0"></van-tab>
@@ -19,6 +21,7 @@
       <van-tab title="已发货" name="3"></van-tab>
       <van-tab title="交易完成" name="4"></van-tab>
     </van-tabs>
+    <!-- 订单内容 -->
     <div class="content">
       <van-pull-refresh v-model="state.refreshing" @refresh="onRefresh" class="order-list-refresh">
         <van-list
@@ -28,9 +31,11 @@
           @load="onLoad"
           @offset="10"
         >
+          <!-- 下单的商品 -->
           <div v-for="(item, index) in state.list" :key="index" class="order-item-box" @click="goTo(item.orderNo)">
             <div class="order-item-header">
               <span>订单时间：{{ item.createTime }}</span>
+              <!-- 支付状态 -->
               <span>{{ item.orderStatusString }}</span>
             </div>
             <van-card
@@ -57,50 +62,63 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const state = reactive({
-  status: '',
-  loading: false,
-  finished: false,
-  refreshing: false,
-  list: [],
-  page: 1,
-  totalPage: 0
+  status: '', // 筛选的状态
+  loading: false, // loading状态
+  finished: false, // 页数是否到达最大
+  refreshing: false, // 下拉刷新的loading状态
+  list: [], // 下单的商品
+  page: 1, // 当前页码
+  totalPage: 0 // 总商品数
 })
 
 const loadData = async () => {
+  // 获取order中的商品数据
   const { data, data: { list } } = await getOrderList({ pageNumber: state.page, status: state.status })
   state.list = state.list.concat(list)
   state.totalPage = data.totalPage
   state.loading = false;
+
+  // 判断当前页是否大于等于总页数。是的话 finished 置为 true
   if (state.page >= data.totalPage) state.finished = true
 }
 
+// 切换状态
 const onChangeTab = ({ name }) => {
   // 这里 Tab 最好采用点击事件，@click，如果用 @change 事件，会默认进来执行一次。
+  // 更换 status 状态，重新获取数据
   state.status = name
   onRefresh()
 }
 
 const goTo = (id) => {
+  // 进入订单详情
   router.push({ path: '/order-detail', query: { id } })
 }
 
 const goBack = () => {
+  // 当前历史后退一步
+  // baidu -> vue -> react
   router.go(-1)
 }
 
 const onLoad = () => {
+  // 下拉刷新没在 loading 的状态
   if (!state.refreshing && state.page < state.totalPage) {
-    console.log(state.page)
-    console.log(state.totalPage)
+    // 页数+1
     state.page = state.page + 1
   }
+
+  // 下拉刷新直接将 list 置空
   if (state.refreshing) {
     state.list = [];
     state.refreshing = false;
   }
+
+  // 获取订单数据
   loadData()
 }
 
+// 下拉刷新
 const onRefresh = () => {
   state.refreshing = true
   state.finished = false

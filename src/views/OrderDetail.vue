@@ -24,9 +24,12 @@
         <label>下单时间：</label>
         <span>{{ state.detail.createTime }}</span>
       </div>
-      <van-button v-if="state.detail.orderStatus == 3" style="margin-bottom: 10px" color="#1baeae" block @click="handleConfirmOrder(state.detail.orderNo)">确认收货</van-button>
+      <!-- 已发货订单 展示 确认收货 -->
+      <van-button style="margin-bottom: 10px" color="#1baeae" block @click="handleConfirmOrder(state.detail.orderNo)">确认收货</van-button>
+      <!-- 未支付订单展示 去支付 -->
       <van-button v-if="state.detail.orderStatus == 0" style="margin-bottom: 10px" color="#1baeae" block @click="showPayFn">去支付</van-button>
-      <van-button v-if="!(state.detail.orderStatus < 0 || state.detail.orderStatus == 4)" block @click="handleCancelOrder(state.detail.orderNo)">取消订单</van-button>
+      <!-- 除了交易完成、待付款 状态外的订单展示 取消订单 -->
+      <van-button v-if="!(state.detail.orderStatus < 0 || state.detail.orderStatus === 4)" block @click="handleCancelOrder(state.detail.orderNo)">取消订单</van-button>
     </div>
     <div class="order-price">
       <div class="price-item">
@@ -38,6 +41,7 @@
         <span>普通快递</span>
       </div>
     </div>
+    <!-- 订单商品列表 -->
     <van-card
       v-for="item in state.detail.newBeeMallOrderItemVOS"
       :key="item.goodsId"
@@ -48,6 +52,7 @@
       :title="item.goodsName"
       :thumb="$filters.prefix(item.goodsCoverImg)"
     />
+    <!-- 支付方式弹窗 -->
     <van-popup
       v-model:show="state.showPay"
       position="bottom"
@@ -69,14 +74,22 @@ import { showConfirmDialog, showLoadingToast, closeToast, showSuccessToast, clos
 import { useRoute } from 'vue-router'
 const route = useRoute()
 const state = reactive({
-  detail: {},
-  showPay: false
+  detail: {}, // 订单详情
+  showPay: false // 是否展示支付方式
 })
 
+// 网络好的情况下，1s
+// 网络不好的情况下，10s
+
+// cb 能在组件被挂载的时候执行
+// --------渲染（时间不确定）-（需要执行的自定义函数）----------
 onMounted(() => {
+  console.log(document.querySelector('.simple-header-name'));
+  // 需要操作某些 DOM
   init()
 })
 
+// 获取订单详情
 const init = async () => {
   showLoadingToast({
     message: '加载中...',
@@ -84,17 +97,21 @@ const init = async () => {
   });
   const { id } = route.query
   const { data } = await getOrderDetail(id)
+  // detail 赋值
   state.detail = data
   closeToast()
 }
 
+// 取消订单
 const handleCancelOrder = (id) => {
   showConfirmDialog({
     title: '确认取消订单？',
   }).then(() => {
+    // 确认后调用接口
     cancelOrder(id).then(res => {
       if (res.resultCode == 200) {
         showSuccessToast('删除成功')
+        // 再次初始化
         init()
       }
     })
@@ -103,6 +120,7 @@ const handleCancelOrder = (id) => {
   });
 }
 
+// 确认订单，逻辑同上
 const handleConfirmOrder = (id) => {
   showConfirmDialog({
     title: '是否确认订单？',
@@ -118,11 +136,14 @@ const handleConfirmOrder = (id) => {
   });
 }
 
+// 展示是否方式
 const showPayFn = () => {
   state.showPay = true
 }
 
+// 处理支付
 const handlePayOrder = async (id, type) => {
+  // 调用支付接口
   await payOrder({ orderNo: id, payType: type })
   state.showPay = false
   init()

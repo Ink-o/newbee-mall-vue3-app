@@ -10,7 +10,9 @@
 
 <template>
   <div class="create-order">
+    <!-- 标题 -->
     <s-header :name="'生成订单'" @callback="deleteLocal"></s-header>
+    <!-- 地址信息 -->
     <div class="address-wrap">
       <div class="name" @click="goTo">
         <span>{{ state.address.userName }} </span>
@@ -21,20 +23,26 @@
       </div>
       <van-icon class="arrow" name="arrow" />
     </div>
+    <!-- 商品列表 -->
     <div class="good">
       <div class="good-item" v-for="(item, index) in state.cartList" :key="index">
+        <!-- 商品图片 -->
         <div class="good-img"><img :src="$filters.prefix(item.goodsCoverImg)" alt=""></div>
         <div class="good-desc">
           <div class="good-title">
+            <!-- 商品名字 -->
             <span>{{ item.goodsName }}</span>
+            <!-- 商品数量 -->
             <span>x{{ item.goodsCount }}</span>
           </div>
           <div class="good-btn">
+            <!-- 商品价格 -->
             <div class="price">¥{{ item.sellingPrice }}</div>
           </div>
         </div>
       </div>
     </div>
+    <!-- 商品金额 -->
     <div class="pay-wrap">
       <div class="price">
         <span>商品金额</span>
@@ -42,6 +50,7 @@
       </div>
       <van-button @click="handleCreateOrder" class="pay-btn" color="#1baeae" type="primary" block>生成订单</van-button>
     </div>
+    <!-- 支付弹框 -->
     <van-popup
       closeable
       :close-on-click-overlay="false"
@@ -70,64 +79,90 @@ import { useRoute, useRouter } from 'vue-router'
 const router = useRouter()
 const route = useRoute()
 const state = reactive({
-  cartList: [],
-  address: {},
-  showPay: false,
-  orderNo: '',
-  cartItemIds: []
+  cartList: [], // 商品列表
+  address: {}, // 地址信息
+  showPay: false, // 支付弹框
+  orderNo: '', // 订单号
+  cartItemIds: [] // select 选择的商品id
 })
 
 onMounted(() => {
+  // 初始化
   init()
 })
 
 const init = async () => {
   showLoadingToast({ message: '加载中...', forbidClick: true });
+  
   const { addressId, cartItemIds } = route.query
+  console.log('route.query: ', route.query);
+  // 获取选择的商品id
   const _cartItemIds = cartItemIds ? JSON.parse(cartItemIds) : JSON.parse(getLocal('cartItemIds'))
+
   setLocal('cartItemIds', JSON.stringify(_cartItemIds))
+
+  // 根据商品id获取商品信息
   const { data: list } = await getByCartItemIds({ cartItemIds: _cartItemIds.join(',') })
+  // 根据地址id获取地址信息
   const { data: address } = addressId ? await getAddressDetail(addressId) : await getDefaultAddress()
+
+  // 如果没有地址id，则跳转到地址选择页
   if (!address) {
     router.push({ path: '/address' })
     return
   }
+
+  // 保存商品和地址信息
   state.cartList = list
   state.address = address
   closeToast()
 }
 
+// 去往地址页
 const goTo = () => {
   router.push({ path: '/address', query: { cartItemIds: JSON.stringify(state.cartItemIds), from: 'create-order' }})
 }
 
+// 删除本地缓存cartItemIds
 const deleteLocal = () => {
   setLocal('cartItemIds', '')
 }
 
+// 创建订单
 const handleCreateOrder = async () => {
+  // 组合地址和商品id
   const params = {
     addressId: state.address.addressId,
     cartItemIds: state.cartList.map(item => item.cartItemId)
   }
   const { data } = await createOrder(params)
+
+  // 商品id置空
   setLocal('cartItemIds', '')
+  // 记录商品id
   state.orderNo = data
+
+  // 展示支付方式
   state.showPay = true
 }
 
+// 跳转到订单页
 const close = () => {
   router.push({ path: '/order' })
 }
 
+// 订单支付
 const handlePayOrder = async (type) => {
   await payOrder({ orderNo: state.orderNo, payType: type })
   showSuccessToast('支付成功')
+
+  // 支付成功后2s 后跳转到订单页
   setTimeout(() => {
     router.push({ path: '/order' })
   }, 2000)
 }
 
+// 商品总额
 const total = computed(() => {
   let sum = 0
   state.cartList.forEach(item => {
